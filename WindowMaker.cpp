@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <thread>
 #include "SFML/System.hpp"
 #include "SFML/Window.hpp"
 #include "SFML/Network.hpp"
@@ -9,6 +10,7 @@
 #include "InputAnalyzer.cpp"
 #include "TempoBall.cpp"
 #include "Settings.h"
+#include "Window.h"
 
 using namespace std;
 
@@ -16,7 +18,10 @@ class WindowMaker
 {
 public:
 
-	WindowMaker() {}
+	WindowMaker()
+	{
+	}
+
 
 	void loadWindow()
 	{
@@ -25,16 +30,16 @@ public:
 		//-----------------------WINDOW SETUP---------------------------
 		
 
-		sf::RenderWindow window(sf::VideoMode(800, 800), "Key Press Reader");
+		
 
 
 
 		InputAnalyzer inputAnlz;
-		TempoBall ball(window);
+		TempoBall ball;
 
-		while (window.isOpen())
+		while (Window::window.isOpen())
 		{
-			readKeyPresses(window, inputAnlz, ball);
+			readKeyPresses(inputAnlz, ball);
 		}
 
 
@@ -43,13 +48,14 @@ public:
 
 
 	}
-
+	/*
 	void tempoBallRunner(TempoBall &ball)
 	{
 		sf::Clock timeSinceMoved;
 	}
+	*/
 
-	void readKeyPresses(sf::RenderWindow &window, InputAnalyzer &inputAnlz, TempoBall &ball)
+	void readKeyPresses(InputAnalyzer &inputAnlz, TempoBall &ball)
 	{
 		//-----------------------TEXT SETUP----------------------------
 		sf::Font font;
@@ -61,31 +67,33 @@ public:
 
 		sf::Text text("F", font, 24);
 
+		//-----------------------THREAD SETUP----------------------------
+
+		thread tempoBallMover(&TempoBall::move, TempoBall());
+		
+
 		//-----------------------WINDOW EVENTS------------------------------
 		sf::Clock actionClock;
-		sf::Clock timeSinceMoved; // for the tempo ball
 
 		bool firstPress = true; // temporary for phase 1
 
-		while (window.isOpen())
+		while (Window::window.isOpen())
 		{
 			//--------------------------DEFAULT STATE-----------------------------
 
-			// moving tempo ball
-			// if the time since the ball was last moved > 0.0083 seconds,
-			// then tell the ball to move the distance equivalent to 0.0083 seconds
-			// using 0.0083 seconds as a time interval makes the ball move at 120 fps
-			if (timeSinceMoved.getElapsedTime().asSeconds() > 0.0083)
-			{
-				timeSinceMoved.restart();
-				ball.move(window);
-				cout << "timeSinceMoved elapsed time: " << timeSinceMoved.getElapsedTime().asSeconds() << endl;
-			}
+			sf::Text text("Default State", font, 24);
+			Window::window.clear();
+			text.setPosition(100.f, 100.f);
+			Window::window.draw(text);
+			Window::window.display();
 
 			//--------------------------STARTUP STATE-------------------------------
 
+			// start the tempo ball
+			ball.setBallMove(true);
 
 			//--------------------------ACTION STATE---------------------------------
+
 
 			// endAction can be set to true to make the window stop polling for events
 			bool endAction = false;
@@ -93,7 +101,7 @@ public:
 			sf::Event event;
 
 			// while there are pending events
-			while (window.pollEvent(event) && !endAction)
+			while (Window::window.pollEvent(event) && !endAction)
 			{
 				// stop the Action on the nth beat, where n = numBeats
 				// the nth beat in seconds = (60 / bpm) * (numBeats)
@@ -113,7 +121,7 @@ public:
 				{
 					// window closed
 					case sf::Event::Closed:
-						window.close();
+						Window::window.close();
 						break;
 
 					// key pressed
@@ -123,7 +131,7 @@ public:
 						if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::W)
 							|| sf::Keyboard::isKeyPressed(sf::Keyboard::RControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 						{
-							window.close();
+							Window::window.close();
 							break;
 						}
 
@@ -157,16 +165,16 @@ public:
 								sentKeyPress = true;
 							}
 
-							window.clear();
+							Window::window.clear();
 							text.setPosition(100.f, 100.f);
-							window.draw(text);
-							window.display();
+							Window::window.draw(text);
+							Window::window.display();
 						}
 						text.setString("F");
 						if (!sf::Keyboard::isKeyPressed(Settings::leftKey))
 						{
-							window.clear();
-							window.display();
+							Window::window.clear();
+							Window::window.display();
 						}
 						break;
 					}
@@ -175,8 +183,18 @@ public:
 				default:
 					break;
 				}
-			}
-		}
+			} // end while (window.pollEvent(event) && !endAction)
+
+			// stop the tempo ball
+			ball.setBallMove(false);
+
+			// go back to default state
+
+		} // end while (window.isOpen())
+
+		// join the threads
+		ball.setBallFinished(true);
+		//tempoBallMover.join();
 
 	}
 };

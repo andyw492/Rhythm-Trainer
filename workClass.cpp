@@ -1,16 +1,32 @@
 #include <iostream>
+#include <string>
 #include <thread>
+#include "SFML/System.hpp"
+#include "SFML/Window.hpp"
+#include "SFML/Network.hpp"
+#include "SFML/Graphics.hpp"
+#include "SFML/Audio.hpp"
+
 using namespace std;
 
-class workClass
+class tempTempoBall
 {
+	static bool s_doWork;
 	static bool s_Finished;
 
-	public:
+	static bool ballMove;
+	static bool ballFinished;
 
-	workClass()
+public:
+
+	tempTempoBall()
 	{
 		//s_Finished = false;
+	}
+
+	void setDoWork(bool f)
+	{
+		s_doWork = f;
 	}
 
 	void setFinished(bool f)
@@ -18,15 +34,21 @@ class workClass
 		s_Finished = f;
 	}
 
-	void DoWork(string s, int i)
+	void move(sf::RenderWindow window)
 	{
-		using namespace std::literals::chrono_literals;
-
-		while(!s_Finished)
+		while (!s_Finished)
 		{
-			cout << s_Finished << endl;
-			cout << s << i << endl;
-			this_thread::sleep_for(0.5s);
+			using namespace std::literals::chrono_literals;
+
+			while (s_doWork)
+			{
+				string s = "qwer";
+				int i = 5;
+				//cout << s_Finished << endl;
+				cout << s << i << endl;
+				this_thread::sleep_for(0.5s);
+			}
 		}
+
 	}
 };
