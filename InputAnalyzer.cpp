@@ -54,8 +54,7 @@ public:
 		{
 			noteCount = 0;
 		}
-		cout << "seconds is " << seconds << endl;
-		cout << "noteCount is " << noteCount << endl;
+
 
 		// thresholds for "red", "yellow" and "green" scores:
 		// red score if >= 0.2 beats off
@@ -68,6 +67,8 @@ public:
 		float redScoreDifferenceThreshold = (0.2 * 60.0 / Settings::bpm);
 		float greenScoreDifferenceThreshold = (0.1 * 60.0 / Settings::bpm);
 		cout << endl;
+		cout << "seconds is " << seconds << endl;
+		cout << "noteCount is " << noteCount << endl;
 		cout << "red threshold: " << redScoreDifferenceThreshold << endl;
 		cout << "green threshold: " << greenScoreDifferenceThreshold << endl;
 		cout << "expected at " << leftExpectedTimes[noteCount] << endl;

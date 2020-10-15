@@ -69,11 +69,12 @@ public:
 
 		//-----------------------THREAD SETUP----------------------------
 
-		thread tempoBallMover(&TempoBall::move, TempoBall());
+		//thread tempoBallMover(&TempoBall::move, TempoBall());
 		
 
 		//-----------------------WINDOW EVENTS------------------------------
 		sf::Clock actionClock;
+		sf::Clock timeSinceMoved; // for tempo ball
 
 		bool firstPress = true; // temporary for phase 1
 
@@ -87,21 +88,19 @@ public:
 			Window::window.draw(text);
 			Window::window.display();
 
+
 			//--------------------------STARTUP STATE-------------------------------
 
 			// start the tempo ball
 			ball.setBallMove(true);
 
 			//--------------------------ACTION STATE---------------------------------
-
-
+			
 			// endAction can be set to true to make the window stop polling for events
 			bool endAction = false;
 
-			sf::Event event;
 
-			// while there are pending events
-			while (Window::window.pollEvent(event) && !endAction)
+			while (!endAction)
 			{
 				// stop the Action on the nth beat, where n = numBeats
 				// the nth beat in seconds = (60 / bpm) * (numBeats)
@@ -116,74 +115,95 @@ public:
 					endAction = true;
 				}
 
-				// check the type of the event...
-				switch (event.type)
+				// moving tempo ball
+				// if the time since the ball was last moved > 0.0083 seconds,
+				// then tell the ball to move the distance equivalent to 0.0083 seconds
+				// using 0.0083 seconds as a time interval makes the ball move at 120 fps
+				if (timeSinceMoved.getElapsedTime().asSeconds() > 0.0083)
 				{
-					// window closed
-					case sf::Event::Closed:
-						Window::window.close();
-						break;
+					ball.move();
+					timeSinceMoved.restart();
+				}
 
-					// key pressed
-					case sf::Event::KeyPressed:
+				sf::Event event;
+				// while there are pending events
+				while (Window::window.pollEvent(event))
+				{
+
+					// check the type of the event...
+					switch (event.type)
 					{
-						// allow the user to close the window through Ctrl-W
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::W)
-							|| sf::Keyboard::isKeyPressed(sf::Keyboard::RControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-						{
+						// window closed
+						case sf::Event::Closed:
 							Window::window.close();
+							break;
+
+						// key pressed
+						case sf::Event::KeyPressed:
+						{
+							// allow the user to close the window through Ctrl-W
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::W)
+								|| sf::Keyboard::isKeyPressed(sf::Keyboard::RControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+							{
+								Window::window.close();
+								break;
+							}
+
+							// stop the Action when escape is pressed
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+							{
+								endAction = true;
+							}
+
+
+							if (firstPress) // temporary for phase 1
+							{
+								actionClock.restart();
+								firstPress = false;
+							}
+
+							text.setString("F " +
+								to_string(actionClock.getElapsedTime().asSeconds()));
+					
+							bool sentKeyPress = false;
+							if (sf::Keyboard::isKeyPressed(Settings::leftKey))
+							{
+								// only send the key press to InputAnalyzer once
+								if (!sentKeyPress)
+								{
+									cout << "Press accuracy: " << inputAnlz.getPressAccuracy
+									(Settings::leftKey, actionClock.getElapsedTime().asSeconds()) << endl;
+
+									cout << "Elapsed time: " << actionClock.getElapsedTime().asSeconds() << endl;
+
+									sentKeyPress = true;
+								}
+
+								Window::window.setActive(true);
+								Window::window.clear();
+								text.setPosition(100.f, 100.f);
+								Window::window.draw(text);
+								Window::window.display();
+								Window::window.setActive(false);
+							}
+							text.setString("F");
+							if (!sf::Keyboard::isKeyPressed(Settings::leftKey))
+							{
+								Window::window.clear();
+								Window::window.display();
+							}
 							break;
 						}
 
-						// stop the Action when escape is pressed
-						if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
-						{
-							endAction = true;
-						}
-
-
-						if (firstPress) // temporary for phase 1
-						{
-							actionClock.restart();
-							firstPress = false;
-						}
-
-						text.setString("F " +
-							to_string(actionClock.getElapsedTime().asSeconds()));
-					
-						bool sentKeyPress = false;
-						if (sf::Keyboard::isKeyPressed(Settings::leftKey))
-						{
-							// only send the key press to InputAnalyzer once
-							if (!sentKeyPress)
-							{
-								cout << "Press accuracy: " << inputAnlz.getPressAccuracy
-								(Settings::leftKey, actionClock.getElapsedTime().asSeconds());
-
-								cout << "Elapsed time: " << actionClock.getElapsedTime().asSeconds() << endl;
-
-								sentKeyPress = true;
-							}
-
-							Window::window.clear();
-							text.setPosition(100.f, 100.f);
-							Window::window.draw(text);
-							Window::window.display();
-						}
-						text.setString("F");
-						if (!sf::Keyboard::isKeyPressed(Settings::leftKey))
-						{
-							Window::window.clear();
-							Window::window.display();
-						}
+					// we don't process other types of events
+					default:
 						break;
 					}
+				} // end while (window.pollEvent(event))
+			}
+			
 
-				// we don't process other types of events
-				default:
-					break;
-				}
-			} // end while (window.pollEvent(event) && !endAction)
+
 
 			// stop the tempo ball
 			ball.setBallMove(false);
