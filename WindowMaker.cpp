@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <thread>
+#include <string>
 #include "SFML/System.hpp"
 #include "SFML/Window.hpp"
 #include "SFML/Network.hpp"
@@ -11,11 +12,16 @@
 #include "TempoBall.cpp"
 #include "Settings.h"
 #include "Window.h"
+#include "WindowDrawer.cpp"
 
 using namespace std;
 
 class WindowMaker
 {
+	vector<sf::Drawable*> drawables;
+	TempoBall ball;
+	// note block
+
 public:
 
 	WindowMaker()
@@ -29,17 +35,11 @@ public:
 
 		//-----------------------WINDOW SETUP---------------------------
 		
-
-		
-
-
-
 		InputAnalyzer inputAnlz;
-		TempoBall ball;
 
 		while (Window::window.isOpen())
 		{
-			readKeyPresses(inputAnlz, ball);
+			runWindowProcesses(inputAnlz);
 		}
 
 
@@ -48,14 +48,29 @@ public:
 
 
 	}
-	/*
-	void tempoBallRunner(TempoBall &ball)
+	
+	// Function that gets the tempo ball into the vector of drawables
+	void addTempoBall()
 	{
-		sf::Clock timeSinceMoved;
-	}
-	*/
+		drawables.push_back(new sf::CircleShape(ball.move()));
 
-	void readKeyPresses(InputAnalyzer &inputAnlz, TempoBall &ball)
+	}
+
+	// Function that gets the note blocks into the vector of drawables
+	void addNoteBlocks()
+	{
+
+	}
+
+	/*
+		Function that runs the default state, startup state, and action state.
+		- calls the first two functions to get the tempo ball and note block positions into the vector
+		- stops the action when the actionClock reaches a certain point
+		- polls events for closing the window or inputting key presses (puts the key press info returned by InputAnalyzer into the vector)
+		- calls WindowDrawer and gives it the vector so it can draw everything
+		- repeats above steps while !endAction
+	*/
+	void runWindowProcesses(InputAnalyzer &inputAnlz)
 	{
 		//-----------------------TEXT SETUP----------------------------
 		sf::Font font;
@@ -65,18 +80,19 @@ public:
 			return;
 		}
 
-		sf::Text text("F", font, 24);
-
-		//-----------------------THREAD SETUP----------------------------
-
-		//thread tempoBallMover(&TempoBall::move, TempoBall());
-		
+		sf::Text leftText("F", font, 24);
+		sf::Text rightText("J", font, 24);
 
 		//-----------------------WINDOW EVENTS------------------------------
 		sf::Clock actionClock;
 		sf::Clock timeSinceMoved; // for tempo ball
+		bool textInput = false;
+
+		WindowDrawer drawer;
 
 		bool firstPress = true; // temporary for phase 1
+
+		sf::CircleShape tempoBallShape;
 
 		while (Window::window.isOpen())
 		{
@@ -92,7 +108,6 @@ public:
 			//--------------------------STARTUP STATE-------------------------------
 
 			// start the tempo ball
-			ball.setBallMove(true);
 
 			//--------------------------ACTION STATE---------------------------------
 			
@@ -102,6 +117,11 @@ public:
 
 			while (!endAction)
 			{
+				Window::window.clear();
+				Window::window.draw(tempoBallShape);
+				Window::window.draw(leftText);
+				Window::window.display();
+
 				// stop the Action on the nth beat, where n = numBeats
 				// the nth beat in seconds = (60 / bpm) * (numBeats)
 
@@ -121,7 +141,7 @@ public:
 				// using 0.0083 seconds as a time interval makes the ball move at 120 fps
 				if (timeSinceMoved.getElapsedTime().asSeconds() > 0.0083)
 				{
-					ball.move();
+					tempoBallShape = ball.move();
 					timeSinceMoved.restart();
 				}
 
@@ -162,35 +182,48 @@ public:
 								firstPress = false;
 							}
 
-							text.setString("F " +
+							// temporary
+							leftText.setString("F " +
 								to_string(actionClock.getElapsedTime().asSeconds()));
-					
+							
 							bool sentKeyPress = false;
 							if (sf::Keyboard::isKeyPressed(Settings::leftKey))
 							{
+								
 								// only send the key press to InputAnalyzer once
 								if (!sentKeyPress)
 								{
-									cout << "Press accuracy: " << inputAnlz.getPressAccuracy
-									(Settings::leftKey, actionClock.getElapsedTime().asSeconds()) << endl;
+									leftText.setString(inputAnlz.getPressAccuracy
+									(Settings::leftKey, actionClock.getElapsedTime().asSeconds()));
 
 									cout << "Elapsed time: " << actionClock.getElapsedTime().asSeconds() << endl;
 
 									sentKeyPress = true;
 								}
+								
 
+								leftText.setPosition(100.f, 100.f);
+								string textString = leftText.getString();
+								//drawables.push_back(new sf::Text(leftText));
+								//Window::window.draw(leftText);
+								textInput = true;
+								//string s; cin >> s;
+
+								/*
 								Window::window.setActive(true);
 								Window::window.clear();
 								text.setPosition(100.f, 100.f);
 								Window::window.draw(text);
 								Window::window.display();
 								Window::window.setActive(false);
+								*/
 							}
-							text.setString("F");
+
+							// if the right key is pressed
 							if (!sf::Keyboard::isKeyPressed(Settings::leftKey))
 							{
-								Window::window.clear();
-								Window::window.display();
+								//Window::window.clear();
+								//Window::window.display();
 							}
 							break;
 						}
@@ -200,20 +233,21 @@ public:
 						break;
 					}
 				} // end while (window.pollEvent(event))
+
+
+				//drawer.drawToWindow(drawables, textInput);
+				textInput = false;
+
+					
 			}
 			
 
-
-
-			// stop the tempo ball
-			ball.setBallMove(false);
 
 			// go back to default state
 
 		} // end while (window.isOpen())
 
 		// join the threads
-		ball.setBallFinished(true);
 		//tempoBallMover.join();
 
 	}

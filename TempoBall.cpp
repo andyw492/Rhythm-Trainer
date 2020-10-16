@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <vector>
 #include "SFML/System.hpp"
@@ -22,9 +21,6 @@ class TempoBall
 
 	sf::CircleShape tempoBallShape;
 
-	static bool ballMove;
-	static bool ballFinished;
-
 public:
 
 	TempoBall()
@@ -47,21 +43,8 @@ public:
 	
 	}
 
-
-	void setBallMove(bool ballMove)
+	sf::CircleShape move()
 	{
-		this->ballMove = ballMove;
-	}
-
-	void setBallFinished(bool ballFinished)
-	{
-		this->ballFinished = ballFinished;
-	}
-
-	void move()
-	{
-
-
 		bool reset = false;
 
 		if (reset)
@@ -134,8 +117,16 @@ public:
 			//string s; cin >> s;
 		}
 
+
+
+		return tempoBallShape;
+
+		/*
+		Window::window.setActive(true);
 		Window::window.clear();
 		Window::window.draw(tempoBallShape);
 		Window::window.display();
+		Window::window.setActive(false);
+		*/
 	}
 };
