@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <cmath>
 #include "SFML/System.hpp"
 #include "SFML/Window.hpp"
 #include "SFML/Network.hpp"
@@ -19,7 +20,16 @@ class TempoBall
 	int rightmostPixel;
 	int currentPixel;
 
+	int pixelsToMoveOffset;
+	int changePixelOffsetThreshold;
+	int pixelsMovedSinceOffset;
+
 	sf::CircleShape tempoBallShape;
+
+	// for debugging
+	bool firstMove;
+	sf::Clock tempoBallClock;
+	int moveCounter;
 
 public:
 
@@ -27,38 +37,60 @@ public:
 	{
 
 		direction = "right";
-		leftmostPixel = 150;
-		rightmostPixel = 590;
+		leftmostPixel = 100;
+		rightmostPixel = 640;
 		currentPixel = 150;
+
+		pixelsToMoveOffset = 0;
+		changePixelOffsetThreshold = 0;
+		pixelsMovedSinceOffset = 0;
 
 		// create the tempo ball that will be passed to the TempoBall class
 		// radius = 30, pointCount = 120
 		
 		tempoBallShape.setRadius(30);
 		tempoBallShape.setPointCount(120);
-		tempoBallShape.setPosition(currentPixel, 150);
-		Window::window.clear();
-		Window::window.draw(tempoBallShape);
-		Window::window.display();
+		tempoBallShape.setPosition(currentPixel, 100);
+
+		firstMove = true;
+		moveCounter = 0;
 	
 	}
 
 	sf::CircleShape move()
 	{
-		bool reset = false;
-
-		if (reset)
+		if (firstMove)
 		{
-			// move ball back to original position
+			firstMove = false;
+			tempoBallClock.restart();
 		}
 
-		// move the ball 0.0083 seconds' worth of pixels
-		// the amount of seconds it takes to move the ball from one end to another (i.e. seconds per beat)
-		// is equal to 60 / bpm
-		// therefore, it takes (60 / bpm) seconds to move 590 - 150 = 440 pixels
-		// it takes 0.0083 seconds to move x pixels; x = 440 / ((60 / bpm) / 0.0083) pixels
+		moveCounter++;
+		if (moveCounter == 60)
+		{
+			cout << "tempoBallClock: " << tempoBallClock.getElapsedTime().asSeconds() << endl << endl;
+			moveCounter = 0;
+		}
 
-		int pixelsToMove = int(440.0 / ((60.0 / Settings::bpm) / 0.0083));
+
+
+		// each time move() is called, move the ball 1/60 of the way to the other side
+		int pixelsToMove = (rightmostPixel - leftmostPixel) / 60;
+
+		// pixelsToMoveOffset:
+		// every 10 seconds, the tempo ball bpm slows down by 1 (tested at bpm = 120)
+		// due to the time it takes to draw to the window
+		// therefore, we will move the tempo ball by an extra pixel for every nth pixel moved
+		// where n = round(120 / (elapsedSeconds / 10))
+
+		pixelsMovedSinceOffset += pixelsToMove;
+		changePixelOffsetThreshold = round(120.0 / (tempoBallClock.getElapsedTime().asSeconds() / 10.0));
+		if (pixelsMovedSinceOffset >= changePixelOffsetThreshold)
+		{
+			pixelsToMove++;
+			pixelsMovedSinceOffset = 0;
+		}
+		
 		if (direction == "left")
 		{
 			// move in the negative x direction if direction == "left"
@@ -71,51 +103,62 @@ public:
 		// "move" the ball from 590 in the negative x direction by the remaining pixelsToMove
 		// move the actual tempo ball to the final ball position
 		// set the direction to left
-		if (currentPixel + pixelsToMove > rightmostPixel)
+
+
+		// if moving the ball would move it past the rightmostPixel, then
+		// move it to the rightmostPixel and set the direction to "left"
+		if (currentPixel + pixelsToMove >= rightmostPixel)
 		{
+			/*
 			int ballPosition = currentPixel;
 			int tempPixelsToMove = pixelsToMove;
-			tempPixelsToMove = 590 - ballPosition;
-			ballPosition = 590;
-			ballPosition = 590 - tempPixelsToMove;
+			tempPixelsToMove = rightmostPixel - ballPosition;
+			ballPosition = rightmostPixel;
+			ballPosition = rightmostPixel - tempPixelsToMove;
 
 			// move the ball by an offset of [new position] - [old position]
 			tempoBallShape.move(ballPosition - currentPixel, 0);
+			*/
 
+			tempoBallShape.move(rightmostPixel - currentPixel, 0);
+			currentPixel = rightmostPixel;
 			direction = "left";
 		}
 
 		// if moving the ball would move it past pixel 150, then
 		// do the same but with 150 instead of 590 and in the opposite direction
 		// set the direction to right
+
+		// if moving the ball would move it past the rightmostPixel, then
+		// move it to the rightmostPixel and set the direction to "left"
 		else
 			if (currentPixel + pixelsToMove < leftmostPixel)
 			{
+				/*
 				int ballPosition = currentPixel;
 				int tempPixelsToMove = pixelsToMove;
-				tempPixelsToMove = ballPosition - 150;
-				ballPosition = 150;
-				ballPosition = 150 + tempPixelsToMove;
+				tempPixelsToMove = ballPosition - leftmostPixel;
+				ballPosition = leftmostPixel;
+				ballPosition = leftmostPixel + tempPixelsToMove;
 
 				// move the ball by an offset of [new position] - [old position]
 				tempoBallShape.move(ballPosition - currentPixel, 0);
+				*/
+				tempoBallShape.move(leftmostPixel - currentPixel, 0);
+				currentPixel = leftmostPixel;
 
 				direction = "right";
 			}
 
 		// if moving the ball doesn't move it past the left or right pixel boundaries
-			else
-			{
-				tempoBallShape.move(pixelsToMove, 0);
-			}
-
-		currentPixel += pixelsToMove;
-
-
-		if (currentPixel > 550)
+		else
 		{
-			//string s; cin >> s;
+			tempoBallShape.move(pixelsToMove, 0);
+			currentPixel += pixelsToMove;
 		}
+
+		
+
 
 
 

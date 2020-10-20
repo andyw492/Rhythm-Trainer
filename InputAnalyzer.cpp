@@ -37,7 +37,6 @@ public:
 		for (int i = 0; i < Settings::numBeats * Settings::leftInterval * 2; i++)
 		{
 			leftExpectedTimes.push_back(float((60.0 / (Settings::bpm * Settings::leftInterval) * i)));
-			cout << "leftExpectedTimes at " << i << " is " << leftExpectedTimes[i] << endl;
 		}
 		for (int i = 0; i < Settings::numBeats * Settings::rightInterval * 2; i++)
 		{

@@ -2,6 +2,7 @@
 #include <vector>
 #include <thread>
 #include <string>
+#include <cmath>
 #include "SFML/System.hpp"
 #include "SFML/Window.hpp"
 #include "SFML/Network.hpp"
@@ -18,7 +19,6 @@ using namespace std;
 
 class WindowMaker
 {
-	vector<sf::Drawable*> drawables;
 	TempoBall ball;
 	// note block
 
@@ -49,18 +49,6 @@ public:
 
 	}
 	
-	// Function that gets the tempo ball into the vector of drawables
-	void addTempoBall()
-	{
-		drawables.push_back(new sf::CircleShape(ball.move()));
-
-	}
-
-	// Function that gets the note blocks into the vector of drawables
-	void addNoteBlocks()
-	{
-
-	}
 
 	/*
 		Function that runs the default state, startup state, and action state.
@@ -83,44 +71,188 @@ public:
 		sf::Text leftText("F", font, 24);
 		sf::Text rightText("J", font, 24);
 
+		//-----------------------DISPLAY SETUP------------------------------
+
+		sf::Text text("Press any key to begin", font, 24);
+		text.setPosition(100.f, 100.f);
+
+		sf::RectangleShape noteBorder;
+		noteBorder.setPosition(sf::Vector2f(100.f, 200.f));
+		noteBorder.setSize(sf::Vector2f(600.f, 500.f));
+		noteBorder.setFillColor(sf::Color::Black);
+		noteBorder.setOutlineColor(sf::Color::White);
+		noteBorder.setOutlineThickness(10);
+
+		sf::RectangleShape leftNoteButton;
+		leftNoteButton.setPosition(sf::Vector2f(200.f, 620.f));
+		leftNoteButton.setSize(sf::Vector2f(100.f, 30.f));
+		leftNoteButton.setFillColor(sf::Color::White);
+
+		sf::RectangleShape rightNoteButton;
+		rightNoteButton.setPosition(sf::Vector2f(500.f, 620.f));
+		rightNoteButton.setSize(sf::Vector2f(100.f, 30.f));
+		rightNoteButton.setFillColor(sf::Color::White);
+
+		// the tempo ball
+		// the properties of tempoBallShape are given by a copy constructor later on using the TempoBall class
+		sf::CircleShape tempoBallShape;
+
 		//-----------------------WINDOW EVENTS------------------------------
 		sf::Clock actionClock;
 		sf::Clock timeSinceMoved; // for tempo ball
 		bool textInput = false;
 
-		WindowDrawer drawer;
-
 		bool firstPress = true; // temporary for phase 1
-
-		sf::CircleShape tempoBallShape;
 
 		while (Window::window.isOpen())
 		{
 			//--------------------------DEFAULT STATE-----------------------------
 
-			sf::Text text("Default State", font, 24);
 			Window::window.clear();
-			text.setPosition(100.f, 100.f);
 			Window::window.draw(text);
 			Window::window.display();
+
+			// wait for the user to press any key (that isn't ctrl-W)
+			bool anyKeyPressed = false;
+			while (!anyKeyPressed)
+			{
+				sf::Event event;
+				while (Window::window.pollEvent(event))
+				{
+					switch (event.type)
+					{
+						// window closed
+						case sf::Event::Closed:
+							Window::window.close();
+							break;
+
+						// key pressed
+						case sf::Event::KeyPressed:
+						{
+							// allow the user to close the window through Ctrl-W
+							if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && 
+								sf::Keyboard::isKeyPressed(sf::Keyboard::W)
+								||
+								sf::Keyboard::isKeyPressed(sf::Keyboard::RControl) && 
+								sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+							{
+								Window::window.close();
+								break;
+							}
+
+							anyKeyPressed = true;
+						}
+
+						default:
+							break;
+						}
+				} // end while (window.pollEvent(event))
+			} // end while (!anyKeyPressed)
 
 
 			//--------------------------STARTUP STATE-------------------------------
 
-			// start the tempo ball
+			sf::Clock startupClock;
+
+			sf::Text startupText; // temporary
+			startupText.setFont(font);
+			startupText.setCharacterSize(24);
+
+			// run this loop for 4 beats of time
+			// 4 beats = 4 * (60 / bpm) seconds
+			while (startupClock.getElapsedTime().asSeconds() < 4 * (60.0 / Settings::bpm))
+			{
+				// temporary
+				startupText.setString(to_string(actionClock.getElapsedTime().asSeconds()));
+
+				// draw all of the objects to the window
+				// for copy-paste: Window::window.draw
+
+				Window::window.clear();
+				Window::window.draw(noteBorder);
+				Window::window.draw(leftNoteButton);
+				Window::window.draw(rightNoteButton);
+				Window::window.draw(tempoBallShape);
+				Window::window.display();
+
+
+				// moving tempo ball and note blocks
+				// if the time since the ball was last moved > 0.0083 seconds,
+				// then tell the ball and notes to move the distance equivalent to 0.0083 seconds
+				// using 0.0083 seconds as a time interval makes the ball and notes move at 120 fps
+				if (timeSinceMoved.getElapsedTime().asSeconds() > 0.0083)
+				{
+					tempoBallShape = ball.move();
+					timeSinceMoved.restart();
+				}
+			}
 
 			//--------------------------ACTION STATE---------------------------------
-			
+			actionClock.restart();
+
 			// endAction can be set to true to make the window stop polling for events
 			bool endAction = false;
 
-
+			int moveCounter = 0;
+			int moveThreshold = 1;
 			while (!endAction)
 			{
+				// draw all of the objects to the window
+				// for copy-paste: Window::window.draw
+
 				Window::window.clear();
+				Window::window.draw(noteBorder);
+				Window::window.draw(leftNoteButton);
+				Window::window.draw(rightNoteButton);
 				Window::window.draw(tempoBallShape);
 				Window::window.draw(leftText);
 				Window::window.display();
+
+				//while(true){}
+
+				// moving tempo ball and note blocks
+				// if the time since the ball was last moved > 1/60 of a beat,
+				// then tell the ball and notes to move the distance equivalent to 1/60 of a beat
+				// using 1/60 of a beat seconds as a time interval makes the ball and notes move at 120 fps
+
+				// if the time since the ball was last moved > 1/60 of a beat,
+				double tempoBallMoveInterval = (60.0 / Settings::bpm) / 60.0;
+
+				
+				/*
+				while (actionClock.getElapsedTime().asSeconds() < 2)
+				{
+					if (trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) == moveThreshold)
+					{
+						cout << trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) << endl;
+						cout << "elapsed time: " << actionClock.getElapsedTime().asSeconds() << endl << endl;
+						moveThreshold++;
+					}
+					
+				}
+
+				while(true){}
+				*/
+				if (trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) == moveThreshold)
+				{
+					//cout << "moving ball, elapsed time is " << actionClock.getElapsedTime().asSeconds() << endl;
+					
+					//timeSinceMoved.restart();
+					
+					//cout << "trunc: " << trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) << endl;
+					//cout << "moveThreshold: " << moveThreshold << endl;
+					//cout << "equal? " << (trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) == moveThreshold) << endl;
+					moveThreshold++;
+
+					tempoBallShape = ball.move();
+
+					moveCounter++;
+					if (moveCounter == 60)
+					{
+						cout << "elapsed time: " << actionClock.getElapsedTime().asSeconds() << endl;
+						moveCounter = 0;
+					}
+				}
 
 				// stop the Action on the nth beat, where n = numBeats
 				// the nth beat in seconds = (60 / bpm) * (numBeats)
@@ -135,15 +267,7 @@ public:
 					endAction = true;
 				}
 
-				// moving tempo ball
-				// if the time since the ball was last moved > 0.0083 seconds,
-				// then tell the ball to move the distance equivalent to 0.0083 seconds
-				// using 0.0083 seconds as a time interval makes the ball move at 120 fps
-				if (timeSinceMoved.getElapsedTime().asSeconds() > 0.0083)
-				{
-					tempoBallShape = ball.move();
-					timeSinceMoved.restart();
-				}
+
 
 				sf::Event event;
 				// while there are pending events
@@ -165,6 +289,7 @@ public:
 							if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::W)
 								|| sf::Keyboard::isKeyPressed(sf::Keyboard::RControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 							{
+								endAction = true;
 								Window::window.close();
 								break;
 							}

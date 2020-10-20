@@ -19,12 +19,12 @@ int Settings::numBeats = 0;
 
 #include "Window.h"
 // default values for WindowMaker
-sf::RenderWindow Window::window(sf::VideoMode(800, 800), "Key Press Reader");
+sf::RenderWindow Window::window(sf::VideoMode(800, 800), "Rhythm Trainer");
 
 
 int main()
 {
-	string asdf = "a777777777777777777777777777777777777777777777777777777777777777777777777777777777777777";
+	string asdf = "a777777777777777777777777777777777777777777777777777777777";
 
 	//thread tempoBallMover(&TempoBall::move, TempoBall());
 
@@ -34,7 +34,7 @@ int main()
 	// replace these with user inputs later
 	Settings::bpm = 120;
 	Settings::leftKey = sf::Keyboard::F;
-	Settings::leftInterval = 2;
+	Settings::leftInterval = 1;
 	Settings::rightKey = sf::Keyboard::J;
 	Settings::rightInterval = 0;
 	Settings::numBeats = 99;
