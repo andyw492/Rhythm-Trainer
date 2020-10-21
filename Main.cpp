@@ -24,7 +24,7 @@ sf::RenderWindow Window::window(sf::VideoMode(800, 800), "Rhythm Trainer");
 
 int main()
 {
-	string asdf = "a777777777777777777777777777777777777777777777777777777777";
+	string asdf = "a7777777777777777777777777777777777777777777777777777777777777777777";
 
 	//thread tempoBallMover(&TempoBall::move, TempoBall());
 
@@ -36,9 +36,8 @@ int main()
 	Settings::leftKey = sf::Keyboard::F;
 	Settings::leftInterval = 1;
 	Settings::rightKey = sf::Keyboard::J;
-	Settings::rightInterval = 0;
+	Settings::rightInterval = 1;
 	Settings::numBeats = 99;
-
 	WindowMaker w;
 	w.loadWindow();
 

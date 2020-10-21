@@ -11,6 +11,7 @@
 
 #include "InputAnalyzer.cpp"
 #include "TempoBall.cpp"
+#include "NoteBlocks.cpp"
 #include "Settings.h"
 #include "Window.h"
 #include "WindowDrawer.cpp"
@@ -20,14 +21,11 @@ using namespace std;
 class WindowMaker
 {
 	TempoBall ball;
-	// note block
+	NoteBlocks blocks;
 
 public:
 
-	WindowMaker()
-	{
-	}
-
+	WindowMaker(){}
 
 	void loadWindow()
 	{
@@ -41,11 +39,6 @@ public:
 		{
 			runWindowProcesses(inputAnlz);
 		}
-
-
-		
-		
-
 
 	}
 	
@@ -86,12 +79,12 @@ public:
 		sf::RectangleShape leftNoteButton;
 		leftNoteButton.setPosition(sf::Vector2f(200.f, 620.f));
 		leftNoteButton.setSize(sf::Vector2f(100.f, 30.f));
-		leftNoteButton.setFillColor(sf::Color::White);
+		leftNoteButton.setFillColor(sf::Color::Blue);
 
 		sf::RectangleShape rightNoteButton;
 		rightNoteButton.setPosition(sf::Vector2f(500.f, 620.f));
 		rightNoteButton.setSize(sf::Vector2f(100.f, 30.f));
-		rightNoteButton.setFillColor(sf::Color::White);
+		rightNoteButton.setFillColor(sf::Color::Blue);
 
 		// the tempo ball
 		// the properties of tempoBallShape are given by a copy constructor later on using the TempoBall class
@@ -166,15 +159,13 @@ public:
 				startupText.setString(to_string(actionClock.getElapsedTime().asSeconds()));
 
 				// draw all of the objects to the window
-				// for copy-paste: Window::window.draw
-
 				Window::window.clear();
 				Window::window.draw(noteBorder);
 				Window::window.draw(leftNoteButton);
 				Window::window.draw(rightNoteButton);
 				Window::window.draw(tempoBallShape);
 				Window::window.display();
-
+				
 
 				// moving tempo ball and note blocks
 				// if the time since the ball was last moved > 0.0083 seconds,
@@ -188,70 +179,106 @@ public:
 			}
 
 			//--------------------------ACTION STATE---------------------------------
+
 			actionClock.restart();
 
 			// endAction can be set to true to make the window stop polling for events
 			bool endAction = false;
 
-			int moveCounter = 0;
-			int moveThreshold = 1;
+			int moveCounter = 0; // debugging
+
+			// for moving tempo ball and note blocks
+			int tempoBallNextThreshold = 0;
+
+			// for spawning left and right note blocks
+			int leftSpawnNextThreshold = 0;
+			int rightSpawnNextThreshold = 0;
+
+			// store the left and right note blocks
+			// (these vectors are passed by reference to the NoteBlocks class's functions so that
+			// they don't have to be remade every time we draw to the window)
+			vector<sf::RectangleShape> leftNoteBlocks;
+			vector<sf::RectangleShape> rightNoteBlocks;
+
 			while (!endAction)
 			{
 				// draw all of the objects to the window
-				// for copy-paste: Window::window.draw
-
 				Window::window.clear();
 				Window::window.draw(noteBorder);
 				Window::window.draw(leftNoteButton);
 				Window::window.draw(rightNoteButton);
 				Window::window.draw(tempoBallShape);
+
+				// draw the noteBlocks
+				for (int i = 0; i < leftNoteBlocks.size(); i++)
+				{
+					Window::window.draw(leftNoteBlocks[i]);
+				}
+				for (int i = 0; i < rightNoteBlocks.size(); i++)
+				{
+					Window::window.draw(rightNoteBlocks[i]);
+				}
+
 				Window::window.draw(leftText);
 				Window::window.display();
-
-				//while(true){}
 
 				// moving tempo ball and note blocks
 				// if the time since the ball was last moved > 1/60 of a beat,
 				// then tell the ball and notes to move the distance equivalent to 1/60 of a beat
 				// using 1/60 of a beat seconds as a time interval makes the ball and notes move at 120 fps
 
-				// if the time since the ball was last moved > 1/60 of a beat,
+				// we have to use the actionClock as a time reference because making a clock for this 
+				// and restarting it whenever the functions are called will slow down the ball and notes too much
+
+				// at bpm = 120, 1/60 of a beat is 0.833 seconds
+				// thus, for bpm = 120 the functions should be called whenever the clock's elapsed time is:
+				// 0.00833, 0.01666, 0.02500, etc.
+
+				// 1/60 of a beat translated to seconds
 				double tempoBallMoveInterval = (60.0 / Settings::bpm) / 60.0;
 
-				
-				/*
-				while (actionClock.getElapsedTime().asSeconds() < 2)
+				// if the clock's elapsed time in seconds is 0.00833, 0.01666, 0.02500, etc.
+				if (trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) == tempoBallNextThreshold)
 				{
-					if (trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) == moveThreshold)
-					{
-						cout << trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) << endl;
-						cout << "elapsed time: " << actionClock.getElapsedTime().asSeconds() << endl << endl;
-						moveThreshold++;
-					}
-					
-				}
-
-				while(true){}
-				*/
-				if (trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) == moveThreshold)
-				{
-					//cout << "moving ball, elapsed time is " << actionClock.getElapsedTime().asSeconds() << endl;
-					
-					//timeSinceMoved.restart();
-					
-					//cout << "trunc: " << trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) << endl;
-					//cout << "moveThreshold: " << moveThreshold << endl;
-					//cout << "equal? " << (trunc(actionClock.getElapsedTime().asSeconds() / tempoBallMoveInterval) == moveThreshold) << endl;
-					moveThreshold++;
-
 					tempoBallShape = ball.move();
+					blocks.moveLeftNotes(leftNoteBlocks);
+					blocks.moveRightNotes(rightNoteBlocks);
 
+					tempoBallNextThreshold++;
+
+					// debugging
 					moveCounter++;
 					if (moveCounter == 60)
 					{
 						cout << "elapsed time: " << actionClock.getElapsedTime().asSeconds() << endl;
 						moveCounter = 0;
 					}
+				}
+
+				// spawn new notes whenever the action clock reaches a certain time
+				// that time depends on the bpm and the [left/right]Interval
+
+				// at bpm = 120 and leftInterval = 2, the time between notes is:
+				// (60 / bpm) / leftInterval = (60 / 120) / 2 = 0.25 seconds
+				// thus, a note should be spawned whenever the clock's elapsed time is: 0.25, 0.5, 0.75, etc.
+
+				double leftNoteSpawnInterval = (60.0 / Settings::bpm) / Settings::leftInterval;
+				double rightNoteSpawnInterval = (60.0 / Settings::bpm) / Settings::rightInterval;
+
+				// check if the actionClock's elapsed time is on a leftInterval
+				if (trunc(actionClock.getElapsedTime().asSeconds() / leftNoteSpawnInterval) == leftSpawnNextThreshold)
+				{
+					blocks.spawnLeftNote(leftNoteBlocks);
+					cout << "called spawn left note, elapsed time: " << actionClock.getElapsedTime().asSeconds() << endl;
+					leftSpawnNextThreshold++;
+				}
+
+				// check if the actionClock's elapsed time is on a rightInterval
+				if (trunc(actionClock.getElapsedTime().asSeconds() / rightNoteSpawnInterval) == rightSpawnNextThreshold)
+				{
+					blocks.spawnRightNote(rightNoteBlocks);
+					cout << "called spawn right note, elapsed time: " << actionClock.getElapsedTime().asSeconds() << endl;
+					rightSpawnNextThreshold++;
 				}
 
 				// stop the Action on the nth beat, where n = numBeats
@@ -266,8 +293,6 @@ public:
 				{
 					endAction = true;
 				}
-
-
 
 				sf::Event event;
 				// while there are pending events

@@ -17,34 +17,105 @@ class NoteBlocks
 	int targetPixel; // the pixel where the buttons are
 	int endingPixel; // the pixel where the bottom border is
 
-	vector<sf::RectangleShape> notes;
+	// the amount of pixels that a note should move for every beat,
+	// equal to 1/4 the distance between the starting pixel and the target pixel
+	int pixelsPerBeat;
+
+	bool firstMove;
+	sf::Clock noteBlocksClock;
+
+	sf::RectangleShape noteTemplate;
+	vector<sf::RectangleShape> leftNotes;
+	vector<sf::RectangleShape> rightNotes;
+
+public:
 
 	NoteBlocks()
 	{
 		startingPixel = 200;
 		targetPixel = 620;
 		endingPixel = 700;
+		pixelsPerBeat = (targetPixel - startingPixel) / 4;
+
+		firstMove = false;
+
+		noteTemplate.setSize(sf::Vector2f(100.f, 30.f));
+		noteTemplate.setFillColor(sf::Color::Cyan);
 
 	}
 
-	vector<sf::RectangleShape> moveLeftNotes()
+	void spawnLeftNote(vector<sf::RectangleShape> &leftNotes)
 	{
-		// move the note 0.0083 seconds' worth of pixels
-		// the amount of seconds it takes to move the note block from the start to the button (i.e. seconds per 4 beats)
-		// is equal to 4(60 / bpm)
-		// therefore, it takes 4(60 / bpm) seconds to move 620 - 200 = 420 pixels
-		// it takes 0.0083 seconds to move x pixels; x = 420 / (4(60 / bpm) / 0.0083) pixels
-
-		// use the same offset (120/104) as the tempo ball
-		int pixelsToMove = (120.0 / 104.0) * int(double(targetPixel - startingPixel) / (4 * (60.0 / Settings::bpm) / 0.0083));
-		
-
-		return notes;
-	
+		sf::RectangleShape leftNote(noteTemplate);
+		leftNote.setPosition(sf::Vector2f(200.f, 200.f));
+		leftNotes.push_back(leftNote);
 	}
 
-	vector<sf::RectangleShape> moveRightNotes()
+	void spawnRightNote(vector<sf::RectangleShape> &rightNotes)
 	{
-		return notes;
+		sf::RectangleShape rightNote(noteTemplate);
+		rightNote.setPosition(sf::Vector2f(500.f, 200.f));
+		rightNotes.push_back(rightNote);
+	}
+
+	void moveLeftNotes(vector<sf::RectangleShape> &leftNotes)
+	{
+		if (firstMove)
+		{
+			firstMove = false;
+			noteBlocksClock.restart();
+		}
+
+		// move the notes 1/60 of the distance of one beat of time
+		// TODO: figure out why the 2 * is needed to make it the right speed
+		int pixelsToMove = 2 * (pixelsPerBeat) / 60;
+
+		// move each note individually
+		for (int i = 0; i < leftNotes.size(); i++)
+		{
+			float yPosition = leftNotes[i].getPosition().y;
+
+			// if moving the note would move it past the ending pixel, then
+			// remove it from the vector
+			if (yPosition + pixelsToMove >= endingPixel)
+			{
+				leftNotes.erase(leftNotes.begin() + i);
+			}
+			else
+			{
+				leftNotes[i].move(0, pixelsToMove);
+			}
+		}
+
+	}
+
+	void moveRightNotes(vector<sf::RectangleShape> &rightNotes)
+	{
+		if (firstMove)
+		{
+			firstMove = false;
+			noteBlocksClock.restart();
+		}
+
+		// move the notes 1/60 of the distance of one beat of time
+		int pixelsToMove = 2 * (pixelsPerBeat) / 60;
+
+		// move each note individually
+		for (int i = 0; i < rightNotes.size(); i++)
+		{
+			float yPosition = rightNotes[i].getPosition().y;
+
+			// if moving the note would move it past the ending pixel, then
+			// remove it from the vector
+			if (yPosition + pixelsToMove >= endingPixel)
+			{
+				rightNotes.erase(rightNotes.begin() + i);
+			}
+			else
+			{
+				rightNotes[i].move(0, pixelsToMove);
+			}
+		}
+
 	}
 };
